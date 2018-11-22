@@ -6,7 +6,6 @@ const crypto = require('crypto');
 const util = require('./util');
 const torrentParser = require('./torrent-parser');
 
-
 //function to get peers for the torrent
 let getPeers = (torrent, next) => {
     const socket = dgram.createSocket('udp4');
