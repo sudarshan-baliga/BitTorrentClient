@@ -1,7 +1,7 @@
 'use strict';
 // https://wiki.theory.org/index.php/BitTorrentSpecification#Handshake
 
-const buffer = require('buffer').Buffer;
+const Buffer = require('buffer').Buffer;
 const torrentParser = require('./torrent-parser');
 const util = require('./util')
 
@@ -78,49 +78,66 @@ module.exports.buildBitfield = bitfield => {
     // bitfield
     bitfield.copy(buf, 5);
     return buf;
-  };
-  
-
-  module.buildRequest = payload => {
-      const buf = Buffer.alloc(17);
-      //length
-      buf.writeInt32BE(13, 0);
-      //id 
-      buf.writeUInt8(6, 4);
-      //piece index
-      buf.writeUInt32BE(payload.index, 5);
-      //begin
-      buf.writeUInt32BE(payload.begin, 9);
-      //length
-      buf.writeUInt32BE(payload.length, 13);
-      return buf;
-  }
-
-  module.exports.buildCancel = payload => {
-      const buf = Buffer.alloc(17);
-      //legnth
-      buf.writeUInt32BE(13, 0);
-      //id 
-      buf.writeUInt8(8, 4);
-      //piece index
-      buf.writeUInt32BE(payload.index, 5);
-      //begin
-      buf.writeUInt32BE(payload.begin, 9);
-      //length
-      buf.writeUInt32BE(payload.length, 13);
-      return buf;
-  }
-
-  module.exports.buildPort = payload => {
-      const buf = Buffer.alloc(7);
-      //length
-      buf.writeInt32BE(3, 0);
-      //id
-      buf.writeUInt8(9, 4);
-      //listen port
-      buf.writeUInt16BE(payload, 5);
-      return buf;
-  }
+};
 
 
+module.buildRequest = payload => {
+    const buf = Buffer.alloc(17);
+    //length
+    buf.writeInt32BE(13, 0);
+    //id 
+    buf.writeUInt8(6, 4);
+    //piece index
+    buf.writeUInt32BE(payload.index, 5);
+    //begin
+    buf.writeUInt32BE(payload.begin, 9);
+    //length
+    buf.writeUInt32BE(payload.length, 13);
+    return buf;
+}
 
+module.exports.buildCancel = payload => {
+    const buf = Buffer.alloc(17);
+    //legnth
+    buf.writeUInt32BE(13, 0);
+    //id 
+    buf.writeUInt8(8, 4);
+    //piece index
+    buf.writeUInt32BE(payload.index, 5);
+    //begin
+    buf.writeUInt32BE(payload.begin, 9);
+    //length
+    buf.writeUInt32BE(payload.length, 13);
+    return buf;
+}
+
+module.exports.buildPort = payload => {
+    const buf = Buffer.alloc(7);
+    //length
+    buf.writeInt32BE(3, 0);
+    //id
+    buf.writeUInt8(9, 4);
+    //listen port
+    buf.writeUInt16BE(payload, 5);
+    return buf;
+}
+
+
+
+module.exports.parse = msg => {
+    const id = msg.length > 4 ? msg.readUInt8(4) : null;
+    let payload = msg.length > 5 ? msg.slice(5) : null;
+    if (id == 6 || id == 7 || id == 8) {
+        const res = payload.slice(8);
+        payload = {
+            index: payload.readInt32BE(0),
+            begin: payload.readInt32BE(4)
+        };
+        payload[id == 7 ? 'block' : 'length'] = rest;
+    }
+    return {
+        size: msg.readInt32BE(0),
+        id: id,
+        payload: payload
+    }
+};
