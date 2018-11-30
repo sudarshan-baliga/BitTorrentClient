@@ -81,7 +81,7 @@ module.exports.buildBitfield = bitfield => {
 };
 
 
-module.buildRequest = payload => {
+module.exports.buildRequest = payload => {
     const buf = Buffer.alloc(17);
     //length
     buf.writeInt32BE(13, 0);

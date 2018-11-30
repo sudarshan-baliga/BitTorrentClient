@@ -3,6 +3,7 @@ const net = require('net');
 const Buffer = require('buffer').Buffer;
 const tracker = require('./tracker');
 const message = require('./message');
+const requested = []; //reqeusted pieces
 
 module.exports = torrent => {
     tracker.getPeers(torrent, peers => {
@@ -18,8 +19,9 @@ let download = (peer, torrent) => {
     socket.connect(peer.port, peer.ip, () => {
         socket.write(message.buildHandshake(torrent));
     });
+    const queue = [];
     onWholeMsg(socket, data => {
-        msgHandler(data, socket);
+        msgHandler(data, socket, queue);
     });
 }
 
@@ -39,15 +41,15 @@ let onWholeMsg = (socket, callback) => {
     })
 }
 
-let msgHandler = (msg, socket) => {
+let msgHandler = (msg, socket, queue) => {
     if (isHandshake(msg)) socket.write(message.buildInterested());
     else {
         const m = message.parse(msg);
         if (m.id == 0) chokeHandler();
         if (m.id === 1) unchokeHandler();
-        if (m.id === 4) haveHandler(m.payload);
+        if (m.id === 4) haveHandler(m.payload, socket, queue);
         if (m.id === 5) bitfieldHandler(m.payload);
-        if (m.id === 7) pieceHandler(m.payload);
+        if (m.id === 7) pieceHandler(m.payload, socket, queue);
     }
 }
 
@@ -60,8 +62,27 @@ function chokeHandler() {}
 
 function unchokeHandler() {}
 
-function haveHandler(payload) {}
+function haveHandler(payload, socket, queue) {
+    const pieceIndex = payload.readInt32BE(0);
+    q
+    queue.push(pieceIndex);
+    //do request only after getting response i.e one request at a time
+    if (queue.length === 1) {
+        requestPiece(socket, queue);
+    }
+    // requested[pieceIndex] = true;
+
+}
 
 function bitfieldHandler(payload) {}
 
 function pieceHandler(payload) {}
+
+function requestPiece(socket, queue) {
+    //check if already requested
+    if (requested[queue[0]]) {
+        queue.shift();
+    } else {
+        socket.write(message.buildRequest(pieceIndex));
+    }
+}
