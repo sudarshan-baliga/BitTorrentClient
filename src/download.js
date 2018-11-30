@@ -10,24 +10,22 @@ const fs = require("fs");
 module.exports = (torrent, path) => {
     tracker.getPeers(torrent, peers => {
         // peers.forEach(download);
-        console.log(peers);
+        console.log("peers: ", peers);
         //torrent will have 20byte hash for each piece
         const pieces = new Pieces(torrent);
         const file = fs.openSync(path, 'w');
-        peers.forEach(peer => download(peer, torrent, pieces));
+        peers.forEach(peer => download(peer, torrent, pieces, file));
     })
 }
 
-let download = (peer, torrent, pieces) => {
+let download = (peer, torrent, pieces, file) => {
     const socket = net.Socket();
-    socket.on('error', console.log);
+    socket.on('error', () => {});
     socket.connect(peer.port, peer.ip, () => {
         socket.write(message.buildHandshake(torrent));
     });
     const queue = new Queue(torrent);
-    onWholeMsg(socket, data => {
-        msgHandler(data, socket, pieces, queue);
-    });
+    onWholeMsg(socket, msg => msgHandler(msg, socket, pieces, queue, torrent, file));
 }
 
 let onWholeMsg = (socket, callback) => {
@@ -46,7 +44,7 @@ let onWholeMsg = (socket, callback) => {
     })
 }
 
-let msgHandler = (msg, socket, pieces, queue) => {
+function msgHandler(msg, socket, pieces, queue, torrent, file) {
     if (isHandshake(msg)) socket.write(message.buildInterested());
     else {
         const m = message.parse(msg);
@@ -73,10 +71,11 @@ function unchokeHandler(socket, pieces, queue) {
     requestPiece(socket, pieces, queue);
 }
 
-function haveHandler(payload, socket, queue) {
-    const pieceIndex = payload.readUInt32BE(0);
+function haveHandler(socket, pieces, queue, payload) {
+    const pieceIndex = payload.readInt32BE(0);
     const queueEmpty = queue.length === 0;
     queue.queue(pieceIndex);
+    //console.log(queue);
     if (queueEmpty) requestPiece(socket, pieces, queue);
 }
 
@@ -93,7 +92,6 @@ function bitfieldHandler(socket, pieces, queue, payload) {
 
 function pieceHandler(socket, pieces, queue, torrent, file, pieceResp) {
     console.log(pieceResp);
-
     pieces.addReceived(pieceResp);
 
     // write to file here...
@@ -112,8 +110,9 @@ function pieceHandler(socket, pieces, queue, torrent, file, pieceResp) {
     }
 }
 
-function requestPiece(socket, queue) {
+function requestPiece(socket, pieces, queue) {
     if (queue.choked) return null;
+
     while (queue.length()) {
         const pieceBlock = queue.deque();
         if (pieces.needed(pieceBlock)) {
