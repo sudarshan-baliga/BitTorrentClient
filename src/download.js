@@ -12,7 +12,7 @@ module.exports = (torrent, path) => {
         // peers.forEach(download);
         console.log(peers);
         //torrent will have 20byte hash for each piece
-        const pieces = new Pieces(torrent.info.pieces.length / 20);
+        const pieces = new Pieces(torrent);
         const file = fs.openSync(path, 'w');
         peers.forEach(peer => download(peer, torrent, pieces));
     })
@@ -34,7 +34,7 @@ let onWholeMsg = (socket, callback) => {
     //since we wont get the whole message read till required length is reached
     let savedBuf = Buffer.alloc(0);
     let handshake = true;
-    socket.on("data", recBuf => {
+    socket.on("data", recvBuf => {
         const msgLen = () => handshake ? savedBuf.readUInt8(0) + 49 : savedBuf.readInt32BE(0) + 4;
         savedBuf = Buffer.concat([savedBuf, recvBuf]);
         //wont go into while loop until entire message is received
@@ -52,9 +52,9 @@ let msgHandler = (msg, socket, pieces, queue) => {
         const m = message.parse(msg);
         if (m.id === 0) chokeHandler(socket);
         if (m.id === 1) unchokeHandler(socket, pieces, queue);
-        if (m.id === 4) haveHandler(m.payload);
-        if (m.id === 5) bitfieldHandler(m.payload);
-        if (m.id === 7) pieceHandler(m.payload);
+        if (m.id === 4) haveHandler(socket, pieces, queue, m.payload);
+        if (m.id === 5) bitfieldHandler(socket, pieces, queue, m.payload);
+        if (m.id === 7) pieceHandler(socket, pieces, queue, torrent, file, m.payload);
     }
 }
 

@@ -17,8 +17,8 @@ module.exports.buildHandshake = torrent => {
     //info hash
     torrentParser.infoHash(torrent).copy(buff, 28);
     //peer id 
-    buff.write(util.genId());
-    return buf;
+    util.genId().copy(buff, 48);
+    return buff;
 }
 
 module.exports.buildKeepAlive = () => Buffer.alloc(4);
