@@ -4,6 +4,7 @@ const Buffer = require('buffer').Buffer;
 const tracker = require('./tracker');
 const message = require('./message');
 const Pieces = require('./pieces');
+const Queue = require('./Queue');
 
 module.exports = torrent => {
     tracker.getPeers(torrent, peers => {
@@ -21,10 +22,7 @@ let download = (peer, torrent, pieces) => {
     socket.connect(peer.port, peer.ip, () => {
         socket.write(message.buildHandshake(torrent));
     });
-    const queue = {
-        choked: true,
-        queue: []
-    };
+    const queue = new Queue(torrent);
     onWholeMsg(socket, data => {
         msgHandler(data, socket, pieces, queue);
     });
@@ -88,11 +86,11 @@ function pieceHandler(payload) {}
 
 function requestPiece(socket, queue) {
     if (queue.choked) return null;
-    while (queue.queue.length) {
-        const pieceIndex = queue.shift();
-        if (pieces.needed(pieceIndex)) {
-            socket.write(message.buildRequest(pieceIndex));
-            pieces.addRequested(pieceIndex);
+    while (queue.length()) {
+        const pieceBlock = queue.deque();
+        if (pieces.needed(pieceBlock)) {
+            socket.write(message.buildRequest(pieceBlock));
+            pieces.addRequested(pieceBlock);
             break;
         }
     }
