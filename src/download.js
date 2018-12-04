@@ -97,7 +97,6 @@ function pieceHandler(socket, pieces, queue, torrent, file, pieceResp) {
     // write to file here...
     const offset = pieceResp.index * torrent.info['piece length'] + pieceResp.begin;
     fs.write(file, pieceResp.block, 0, pieceResp.block.length, offset, () => {});
-
     if (pieces.isDone()) {
         socket.end();
         console.log('DONE!');

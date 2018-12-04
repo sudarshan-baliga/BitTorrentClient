@@ -76,8 +76,15 @@ function buildAnnounceReq(connId, torrent, port = 6881) {
     util.genId().copy(buf, 36);
     // downloaded
     Buffer.alloc(8).copy(buf, 56);
+   
     // left
-    torrentParser.size(torrent).copy(buf, 64);
+    //it should be 8 bytes write 4 bytes at a time
+    const size = torrentParser.size(torrent);
+    //uppper bits
+    buf.writeUInt32BE(size >> 8, 64);
+    //lower bits
+    buf.writeUInt32BE(size & 0x00ff, 68); 
+    
     // uploaded
     Buffer.alloc(8).copy(buf, 72);
     // event
