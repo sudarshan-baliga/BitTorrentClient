@@ -91,7 +91,7 @@ function bitfieldHandler(socket, pieces, queue, payload) {
 }
 
 function pieceHandler(socket, pieces, queue, torrent, file, pieceResp) {
-    console.log(pieceResp);
+    console.log("recived", pieceResp);
     pieces.addReceived(pieceResp);
 
     // write to file here...

@@ -3,7 +3,6 @@
 const fs = require('fs');
 const bencode = require('bencode');
 const crypto = require('crypto');
-const Buffer = require('buffer').Buffer;
 
 module.exports.open = (filepath) => {
     return bencode.decode(fs.readFileSync(filepath));
